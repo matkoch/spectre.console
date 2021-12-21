@@ -1,3 +1,7 @@
+Modifications by Matthias Koch via https://github.com/matkoch/spectre.console
+
+---
+
 MIT License
 
 Copyright (c) 2020 Patrik Svensson, Phil Scott, Nils Andresen
