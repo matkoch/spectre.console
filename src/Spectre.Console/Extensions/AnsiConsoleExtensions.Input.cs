@@ -13,9 +13,58 @@ public static partial class AnsiConsoleExtensions
         }
 
         style ??= Style.Plain;
-        var text = string.Empty;
+        var text = new List<char>();
+        var position = 0;
 
         var autocomplete = new List<string>(items ?? Enumerable.Empty<string>());
+        var isOsxPlatform = RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+
+        int Advance(int direction)
+        {
+            var steps = 0;
+            var reachedGreedyChar = false;
+
+            bool IsNextGreedyChar() => direction == -1
+                ? !char.IsWhiteSpace(text[position + steps + direction])
+                : char.IsWhiteSpace(text[position + steps]);
+
+            while (position + steps + direction >= 0 && position + steps + direction <= text.Count)
+            {
+                steps += direction;
+                if (position + steps == 0 || position + steps == text.Count)
+                {
+                    break;
+                }
+
+                if (reachedGreedyChar && !IsNextGreedyChar())
+                {
+                    break;
+                }
+
+                if (IsNextGreedyChar())
+                {
+                    reachedGreedyChar = true;
+                }
+            }
+
+            return Math.Abs(steps);
+        }
+
+        void Backspace(int steps = 1)
+        {
+            console.Cursor.MoveLeft(steps);
+            console.Write(new string(text.Skip(position).Concat(Enumerable.Repeat(' ', steps)).ToArray()));
+            console.Cursor.MoveLeft(steps + (text.Count - position));
+            text.RemoveRange(position - steps, steps);
+            position -= steps;
+        }
+
+        void Delete(int steps = 1)
+        {
+            console.Write(new string(text.Skip(position + steps).Concat(Enumerable.Repeat(' ', steps)).ToArray()));
+            console.Cursor.MoveLeft(steps + (text.Count - position) - 1);
+            text.RemoveRange(position, steps);
+        }
 
         while (true)
         {
@@ -26,43 +75,134 @@ public static partial class AnsiConsoleExtensions
             }
 
             var key = rawKey.Value;
+
+            // Enter
             if (key.Key == ConsoleKey.Enter)
             {
-                return text;
+                return new string(text.ToArray());
             }
 
+            // Completion
             if (key.Key == ConsoleKey.Tab && autocomplete.Count > 0)
             {
                 var autoCompleteDirection = key.Modifiers.HasFlag(ConsoleModifiers.Shift)
                     ? AutoCompleteDirection.Backward
                     : AutoCompleteDirection.Forward;
-                var replace = AutoComplete(autocomplete, text, autoCompleteDirection);
+                var replace = AutoComplete(autocomplete, new string(text.ToArray()), autoCompleteDirection);
                 if (!string.IsNullOrEmpty(replace))
                 {
                     // Render the suggestion
-                    console.Write("\b \b".Repeat(text.Length), style);
+                    console.Write("\b \b".Repeat(text.Count), style);
                     console.Write(replace);
-                    text = replace;
+                    text = replace.ToCharArray().ToList();
                     continue;
                 }
             }
 
+            // Backspace
             if (key.Key == ConsoleKey.Backspace)
             {
-                if (text.Length > 0)
+                if ((!isOsxPlatform && key.Modifiers.HasFlag(ConsoleModifiers.Control)) ||
+                    (isOsxPlatform && key.Modifiers.HasFlag(ConsoleModifiers.Alt)))
                 {
-                    text = text.Substring(0, text.Length - 1);
-                    console.Write("\b \b");
+                    Backspace(secret ? position : Advance(-1));
+                }
+                else if (position > 0)
+                {
+                    Backspace();
                 }
 
                 continue;
             }
 
+            // Delete
+            if (key.Key == ConsoleKey.Delete)
+            {
+                if ((!isOsxPlatform && key.Modifiers.HasFlag(ConsoleModifiers.Control)) ||
+                    (isOsxPlatform && key.Modifiers.HasFlag(ConsoleModifiers.Alt)))
+                {
+                    Delete(secret ? position : Advance(1));
+                }
+                else if (position < text.Count)
+                {
+                    Delete();
+                }
+
+                continue;
+            }
+
+            // Left Arrow
+            if (key.Key == ConsoleKey.LeftArrow)
+            {
+                if (position > 0)
+                {
+                    position--;
+                    console.Cursor.MoveLeft();
+                }
+
+                continue;
+            }
+
+            // Right Arrow
+            if (key.Key == ConsoleKey.RightArrow)
+            {
+                if (position < text.Count)
+                {
+                    position++;
+                    console.Cursor.MoveRight();
+                }
+
+                continue;
+            }
+
+            // Home
+            if (key.Key == ConsoleKey.Home)
+            {
+                console.Cursor.MoveLeft(position);
+                position = 0;
+                continue;
+            }
+
+            // End
+            if (key.Key == ConsoleKey.End)
+            {
+                console.Cursor.MoveRight(text.Count - position);
+                position = text.Count;
+                continue;
+            }
+
+            // Ctrl + Left Arrow
+            if (key.Key == ConsoleKey.B &&
+                ((!isOsxPlatform && key.Modifiers.HasFlag(ConsoleModifiers.Control)) ||
+                (isOsxPlatform && key.Modifiers.HasFlag(ConsoleModifiers.Alt))))
+            {
+                var charsToMove = secret ? position : Advance(-1);
+                position -= charsToMove;
+                console.Cursor.MoveLeft(charsToMove);
+
+                continue;
+            }
+
+            // Ctrl + Right Arrow
+            if (key.Key == ConsoleKey.F &&
+                ((!isOsxPlatform && key.Modifiers.HasFlag(ConsoleModifiers.Control)) ||
+                (isOsxPlatform && key.Modifiers.HasFlag(ConsoleModifiers.Alt))))
+            {
+                var charsToMove = secret ? text.Count - position : Advance(1);
+                position += charsToMove;
+                console.Cursor.MoveRight(charsToMove);
+
+                continue;
+            }
+
+            // Normal Input
             if (!char.IsControl(key.KeyChar))
             {
-                text += key.KeyChar.ToString();
-                var output = key.KeyChar.ToString();
-                console.Write(secret ? output.Mask(mask) : output, style);
+                text.Insert(position, key.KeyChar);
+                position++;
+                var output = secret ? mask.ToString()! : new string(new[] { key.KeyChar }.Concat(text.Skip(position)).ToArray());
+                console.Write(output, style);
+                console.Cursor.MoveLeft(text.Count - position);
             }
         }
     }
