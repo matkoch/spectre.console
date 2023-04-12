@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
     <NoWarn>SA1633</NoWarn>
+    <PackageId>matkoch.spectre.console</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
