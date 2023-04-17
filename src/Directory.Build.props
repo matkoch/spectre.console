@@ -15,22 +15,20 @@
 
   <PropertyGroup Label="Package Information">
     <Description>A library that makes it easier to create beautiful console applications.</Description>
-    <Copyright>Patrik Svensson, Phil Scott, Nils Andresen</Copyright>
-    <Authors>Patrik Svensson, Phil Scott, Nils Andresen</Authors>
+    <Copyright>Patrik Svensson, Phil Scott, Nils Andresen, Matthias Koch</Copyright>
+    <Authors>Patrik Svensson, Phil Scott, Nils Andresen, Matthias Koch</Authors>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/spectreconsole/spectre.console</RepositoryUrl>
-    <PackageIcon>small-logo.png</PackageIcon>
+    <RepositoryUrl>https://github.com/matkoch/spectre.console</RepositoryUrl>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <PackageProjectUrl>https://github.com/spectreconsole/spectre.console</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/matkoch/spectre.console</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReleaseNotes>https://github.com/spectreconsole/spectre.console/releases</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Label="Source Link">
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
-  
+
   <ItemGroup Label="Package References">
     <PackageReference Include="MinVer" PrivateAssets="All" Version="4.2.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" Version="1.1.1" />
